@@ -1,11 +1,35 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 )
 
+type application struct {
+	errorLog *log.Logger
+	infoLog  *log.Logger
+}
+
 func main() {
+	addr := flag.String("addr", ":4000", "HTTP network address")
+
+	flag.Parse()
+
+	// Use log.New() to create a logger for writing information messages.
+
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	// Initialize a new instance of our application struct, containing the
+	// dependencies.
+
+	app := &application{
+		errorLog: errorLog,
+		infoLog:  infoLog,
+	}
 
 	mux := http.NewServeMux()
 
@@ -16,19 +40,25 @@ func main() {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 
 	// Use the mux.Handle() function to register the file server as the handler for
-	// all URL paths that start with "/static/". For matching paths, we strip the
-	// "/static" prefix before the request reaches the file server.
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// Register the other application routes as normal.
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet/view", snippetView)
-	mux.HandleFunc("/snippet/create", snippetCreate)
+	mux.HandleFunc("/", app.home)
+	mux.HandleFunc("/snippet/view", app.snippetView)
+	mux.HandleFunc("/snippet/create", app.snippetCreate)
 
-	log.Print("Starting server on :4000")
+	// initialize a new http server struct
 
-	err := http.ListenAndServe(":4000", mux)
+	srv := &http.Server{
+		Addr:     *addr,
+		ErrorLog: errorLog,
+		Handler:  mux,
+	}
+	// use new loggers
+	infoLog.Printf("Starting server on %s", *addr)
 
-	log.Fatal(err)
+	err := srv.ListenAndServe()
+
+	errorLog.Fatal(err)
 
 }
