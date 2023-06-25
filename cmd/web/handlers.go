@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
+
+	"snippetbox.owezzy.tech/internal/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -13,33 +15,43 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	snippets, err := app.snippets.Latest()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	for _, snippet := range snippets {
+		fmt.Fprintf(w, "%+v\n", snippet)
+	}
+
 	// Initialize a slice containing the paths to the two files. It's important
 	// to note that the file containing our base template must be the *first*
 	// file in the slice.
-	files := []string{
-		"./ui/html/base.html",
-		"./ui/html/pages/home.html",
-		"./ui/html/partials/nav.html",
-	}
+	// files := []string{
+	// 	"./ui/html/base.html",
+	// 	"./ui/html/pages/home.html",
+	// 	"./ui/html/partials/nav.html",
+	// }
 	// Use the template.ParseFiles() function to read the template file into a
 	// template set. If there's an error, we log the detailed error message and use
 	// the http.Error() function to send a generic 500 Internal Server Error
 	// response to the user.
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, err)
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
+	// ts, err := template.ParseFiles(files...)
+	// if err != nil {
+	// 	app.serverError(w, err)
+	// 	http.Error(w, "Internal Server Error", 500)
+	// 	return
+	// }
 	// We then use the Execute() method on the template set to write the
 	// template content as the response body. The last parameter to Execute()
 	// represents any dynamic data that we want to pass in, which for now we'll
 	// leave as nil.
-	err = ts.ExecuteTemplate(w, "base", nil)
-	if err != nil {
-		app.serverError(w, err)
-		http.Error(w, "Internal Server Error", 500)
-	}
+	// err = ts.ExecuteTemplate(w, "base", nil)
+	// if err != nil {
+	// 	app.serverError(w, err)
+	// 	http.Error(w, "Internal Server Error", 500)
+	// }
 }
 
 // Add a snippetView handler function.
@@ -49,9 +61,20 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-	// Use the fmt.Fprintf() function to interpolate the id value with our response
-	// and write it to the http.ResponseWriter.
-	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+	// Use the SnippetModel object's Get method to retrieve the data for a
+	// specific record based on its ID. If no matching record is found,
+	// return a 404 Not Found response.
+
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.notFound(w)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+	fmt.Fprintf(w, "%+v", snippet)
 }
 
 // Add a snippetCreate handler function.
@@ -64,5 +87,20 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	w.Write([]byte("Create a new snippet..."))
+
+	// Create some variables holding dummy data. We'll remove these later on
+	// during the build.
+	title := "O snail"
+	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
+	expires := 7
+	// Pass the data to the SnippetModel.Insert() method, receiving the
+	// ID of the new record back.
+	id, err := app.snippets.Insert(title, content, expires)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	// Redirect the user to the relevant page for the snippet.
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
+	// w.Write([]byte("Create a new snippet..."))
 }
