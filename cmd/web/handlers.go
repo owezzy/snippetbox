@@ -80,17 +80,11 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 // Add a snippetCreatePost handler function.
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 
-	err := r.ParseForm()
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
 	// Declare a new empty instance of the snippetCreateForm struct.
 
 	var form snippetCreateForm
 
-	err = app.decodePostForm(r, &form)
+	err := app.decodePostForm(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
