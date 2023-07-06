@@ -1,7 +1,13 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
 
+	"github.com/justinas/alice"
+)
+
+// Update the signature for the routes() method so that it returns a
+// http.Handler instead of *http.ServeMux.
 func (app *application) routes() http.Handler {
 
 	mux := http.NewServeMux()
@@ -20,5 +26,10 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/snippet/view", app.snippetView)
 	mux.HandleFunc("/snippet/create", app.snippetCreate)
 
-	return secureHeaders(mux)
+	// Create a middleware chain containing our 'standard' middleware
+	// which will be used for every request our application receives.
+
+	standard := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+
+	return standard.Then(mux)
 }
