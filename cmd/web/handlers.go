@@ -6,14 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/julienschmidt/httprouter"
 	"snippetbox.owezzy.tech/internal/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		app.notFound(w)
-		return
-	}
 
 	snippets, err := app.snippets.Latest()
 	if err != nil {
@@ -29,7 +26,10 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 // Add a snippetView handler function.
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+
+	params := httprouter.ParamsFromContext(r.Context())
+
+	id, err := strconv.Atoi(params.ByName("id"))
 	if err != nil || id < 1 {
 		app.notFound(w)
 		return
@@ -57,17 +57,13 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 // Add a snippetCreate handler function.
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
-	// Use r.Method to check whether the request is using POST or not.
-	if r.Method != "POST" {
 
-		w.Header().Set("Allow", http.MethodPost)
-		app.clientError(w, http.StatusMethodNotAllowed)
+	w.Write([]byte("Display the form for creating a new snippet..."))
+}
 
-		return
-	}
+// Add a snippetCreatePost handler function.
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 
-	// Create some variables holding dummy data. We'll remove these later on
-	// during the build.
 	title := "O snail"
 	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
 	expires := 7
@@ -79,6 +75,5 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Redirect the user to the relevant page for the snippet.
-	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
-	// w.Write([]byte("Create a new snippet..."))
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
