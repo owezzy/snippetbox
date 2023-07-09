@@ -47,8 +47,9 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		// Create a slice containing the filepath patterns for the templates we
 		// want to parse.
 		patterns := []string{
-			"./ui/html/partials/*.html",
-			"./ui/html/base.html",
+			"html/partials/*.html",
+			"html/base.html",
+			page,
 		}
 		// Use ParseFS() instead of ParseFiles() to parse the template files
 		// from the ui.Files embedded filesystem.
