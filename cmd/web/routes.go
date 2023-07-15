@@ -21,6 +21,8 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.FS(ui.Files))
 	router.Handler(http.MethodGet, "/static/*filepath", fileServer)
 
+	router.HandlerFunc(http.MethodGet, "/ping", ping)
+
 	// Create a new middleware chain containing the middleware specific to our
 	// dynamic application routes.
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)

@@ -23,7 +23,11 @@ type templateData struct {
 // Create a humanDate function which returns a nicely formatted string
 
 func humanDate(t time.Time) string {
-	return t.Format("02 Jan 2006 at 15:04")
+	if t.IsZero() {
+		return ""
+	}
+
+	return t.UTC().Format("02 Jan 2006 at 15:04")
 
 }
 
