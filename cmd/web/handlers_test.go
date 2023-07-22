@@ -111,7 +111,7 @@ func TestUserSignup(t *testing.T) {
 			userEmail:    validEmail,
 			userPassword: validPassword,
 			csrfToken:    "wrong Token",
-			wantCode:     http.StatusSeeOther,
+			wantCode:     http.StatusBadRequest,
 		},
 		{
 			name:         "Empty name",

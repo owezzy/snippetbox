@@ -18,8 +18,8 @@ import (
 	"snippetbox.owezzy.tech/internal/models/mocks"
 )
 
-// Create a newTestApplication helper which returns an instance of our
-// application struct containing mocked dependencies.
+var csrfTokenRX = regexp.MustCompile(`<input type='hidden' name='csrf_token' value='(.+)'>`)
+
 func newTestApplication(t *testing.T) *application {
 	templateCache, err := newTemplateCache()
 	if err != nil {
@@ -48,33 +48,21 @@ type testServer struct {
 	*httptest.Server
 }
 
-// Create a newTestServer helper which initalizes and returns a new instance
-// of our custom testServer type.
 func newTestServer(t *testing.T, h http.Handler) *testServer {
-	// Initialize the test server as normal.
 	ts := httptest.NewTLSServer(h)
-	// Initialize a new cookie jar.
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Add the cookie jar to the test server client. Any response cookies will
-	// now be stored and sent with subsequent requests when using this client.
+
 	ts.Client().Jar = jar
-	// Disable redirect-following for the test server client by setting a custom
-	// CheckRedirect function. This function will be called whenever a 3xx
-	// response is received by the client, and by always returning a
-	// http.ErrUseLastResponse error it forces the client to immediately return
-	// the received response.
+
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 	return &testServer{ts}
 }
 
-// Implement a get() method on our custom testServer type. This makes a GET
-// request to a given url path using the test server client, and returns the
-// response status code, headers and body.
 func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, string) {
 	rs, err := ts.Client().Get(ts.URL + urlPath)
 	if err != nil {
@@ -104,8 +92,6 @@ func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (i
 	// Return the response status, headers and body.
 	return rs.StatusCode, rs.Header, string(body)
 }
-
-var csrfTokenRX = regexp.MustCompile(`<input type='hidden' name='csrf_token' value='(.+)'>`)
 
 func extractCSRFToken(t *testing.T, body string) string {
 
